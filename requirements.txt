@@ -1,0 +1,7 @@
+
+pyqt6
+pyautogui
+vosk
+pyaudio
+fuzzywuzzy
+python-Levenshtein
