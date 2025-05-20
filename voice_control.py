@@ -12,25 +12,44 @@ COMMAND_QUEUE = queue.Queue()
 valid_commands = [f"{chr(c)}{r}" for c in range(ord("a"), ord("z") + 1) for r in range(1, 31)]
 
 
+phonetic_map = {
+    'alpha': 'a', 'bravo': 'b', 'charlie': 'c', 'delta': 'd', 'echo': 'e',
+    'foxtrot': 'f', 'golf': 'g', 'hotel': 'h', 'india': 'i', 'juliet': 'j',
+    'kilo': 'k', 'lima': 'l', 'mike': 'm', 'november': 'n', 'oscar': 'o',
+    'papa': 'p', 'quebec': 'q', 'romeo': 'r', 'sierra': 's', 'tango': 't',
+    'uniform': 'u', 'victor': 'v', 'whiskey': 'w', 'xray': 'x', 'yankee': 'y', 'zulu': 'z'
+}
+
 def clean_command(raw_text: str) -> str:
-    """Normalize input: remove filler words and convert spoken numbers."""
+    """Normalize input: remove filler words, convert phonetics and spoken numbers."""
     text = raw_text.lower().strip()
 
-    # Remove filler verbs
+    # Step 1: Remove filler verbs
     text = re.sub(r'\b(move to|go to|letter|click on|select|click|press)\b', '', text)
 
-    # Map words like 'one' → '1', 'two' → '2'
+    # Step 2: Convert phonetic words to letters
+    words = text.split()
+    converted = []
+    for word in words:
+        if word in phonetic_map:
+            converted.append(phonetic_map[word])
+        else:
+            converted.append(word)
+    text = ' '.join(converted)
+
+    # Step 3: Convert spoken numbers to digits
     word_to_number = {
         'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
         'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10',
         'eleven': '11', 'twelve': '12', 'thirteen': '13', 'fourteen': '14',
         'fifteen': '15', 'sixteen': '16', 'seventeen': '17', 'eighteen': '18',
-        'nineteen': '19', 'twenty': '20'
+        'nineteen': '19', 'twenty': '20', 'thirty': '30'
     }
 
     for word, digit in word_to_number.items():
         text = re.sub(rf'\b{word}\b', digit, text)
 
+    # Step 4: Remove spaces to match grid format (e.g., "c 9" → "c9")
     return re.sub(r'\s+', '', text)
 
 

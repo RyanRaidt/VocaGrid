@@ -2,16 +2,13 @@ import sys
 import time
 from voice_control import VoiceListener, COMMAND_QUEUE
 from mouse_control import move_to_grid_cell, click
-from PyQt6.QtWidgets import QApplication, QWidget
-from PyQt6.QtGui import QPainter, QColor, QFont
-from PyQt6.QtCore import Qt, QRect, QTimer
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import QTimer
+from grid_overlay import GridOverlay
 
-class TransparentOverlay(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.columns = 26  # A–Z
-        self.rows = 30     # 1–30
-        self.initUI()
+class VocaGridApp(GridOverlay):
+    def __init__(self, theme="default"):
+        super().__init__(columns=26, rows=30, theme=theme)
         self.voice = VoiceListener()
         self.voice.start()
 
@@ -30,51 +27,12 @@ class TransparentOverlay(QWidget):
                 col = command[0].upper()
                 try:
                     row = int(command[1:])
-                    time.sleep(0.2)  # slight delay to ensure overlay isn't interfering
-                    move_to_grid_cell(col, row, self.width(), self.height())
+                    time.sleep(0.2)
+                    move_to_grid_cell(col, row, self.width(), self.height(), self.columns, self.rows)
                 except ValueError:
                     print(f"⚠️ Invalid grid reference: {command}")
 
-    def initUI(self):
-        self.setWindowTitle('VocaGrid Overlay')
-        self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.Tool
-        )
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
-        self.showFullScreen()
-
-    def paintEvent(self, event):
-        screen_width = self.width()
-        screen_height = self.height()
-        cell_width = screen_width / self.columns
-        cell_height = screen_height / self.rows
-
-        painter = QPainter(self)
-        painter.setPen(QColor(0, 255, 0, 100))  # Light green lines
-        painter.setFont(QFont('Arial', 12))
-
-        # Draw vertical lines & column labels
-        for col in range(self.columns + 1):
-            x = int(col * cell_width)
-            painter.drawLine(x, 0, x, screen_height)
-            if col < self.columns:
-                label = chr(65 + col)  # A–T
-                painter.drawText(QRect(x, 0, int(cell_width), 20), Qt.AlignmentFlag.AlignCenter, label)
-
-        # Draw horizontal lines & row labels
-        for row in range(self.rows + 1):
-            y = int(row * cell_height)
-            painter.drawLine(0, y, screen_width, y)
-            if row < self.rows:
-                label = str(row + 1)
-                painter.drawText(QRect(0, y, 30, int(cell_height)), Qt.AlignmentFlag.AlignVCenter, label)
-
-        painter.end()
-
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    overlay = TransparentOverlay()
+    overlay = VocaGridApp(theme="blue_light")  # try "blue_light" or "default"
     sys.exit(app.exec())
