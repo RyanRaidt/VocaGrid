@@ -50,19 +50,25 @@ class VoiceListener:
                 if not text:
                     continue
 
-                # 🎨 Theme commands
+                #  Voice control: Toggle control panel
+                if text == "toggle panel":
+                    print("🪟 Voice command: toggle control panel")
+                    COMMAND_QUEUE.put("toggle_panel")
+                    continue
+
+                #  Theme commands
                 if text in theme_commands:
                     print(f"🎨 Matched theme command: {text}")
                     COMMAND_QUEUE.put(theme_commands[text])
                     continue
 
-                # ✅ Click commands
+                #  Click commands
                 if text in click_commands:
                     print(f"✅ Matched click command: {text}")
                     COMMAND_QUEUE.put(click_commands[text])
                     continue
 
-                # 🎯 Grid command
+                #  Grid command
                 cleaned = clean_command(text)
                 matched = match_command(cleaned, valid_commands)
                 if matched:

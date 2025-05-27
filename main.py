@@ -1,10 +1,18 @@
 import sys
 import time
+import threading
+import keyboard  # 🔑 Global hotkey library
+
 from voice_control import VoiceListener, COMMAND_QUEUE
 from mouse_control import move_to_grid_cell, click
 from grid_overlay import GridOverlay, THEMES
+from control_panel import ControlPanel
+
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QTimer
+from PyQt6.QtCore import QTimer, Qt
+
+# Global panel reference
+panel = None
 
 class VocaGridApp(GridOverlay):
     def __init__(self, theme="default"):
@@ -19,6 +27,7 @@ class VocaGridApp(GridOverlay):
         self.timer.start(1000)
 
     def check_commands(self):
+        global panel
         while not COMMAND_QUEUE.empty():
             command = COMMAND_QUEUE.get()
             print("Heard:", command)
@@ -35,6 +44,10 @@ class VocaGridApp(GridOverlay):
                 else:
                     print(f"⚠️ Unknown theme: {new_theme}")
 
+            elif command == "toggle_panel":
+                if panel:
+                    panel.toggle_visibility()
+
             else:
                 col = command[0].upper()
                 try:
@@ -48,7 +61,26 @@ class VocaGridApp(GridOverlay):
         self.theme = THEMES[self.theme_name]
         self.repaint()
 
+def handle_theme_command(command: str):
+    if command.startswith("theme_"):
+        new_theme = command.replace("theme_", "")
+        if new_theme in THEMES:
+            print(f"🎨 (Panel) Switching theme to: {new_theme}")
+            overlay.theme_name = new_theme
+            overlay.update_theme()
+
+def listen_for_global_shortcut():
+    # 🔥 Toggle control panel with Ctrl+Alt+P from anywhere
+    keyboard.add_hotkey('ctrl+alt+p', lambda: panel.toggle_visibility() if panel is not None else None)
+    keyboard.wait()  # Keeps this thread alive
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    overlay = VocaGridApp(theme="default")  # try "high_contrast" or "blue_light"
+
+    overlay = VocaGridApp(theme="default")
+    panel = ControlPanel(theme_callback=handle_theme_command)
+
+    # 🔊 Start background thread to listen for global hotkey
+    threading.Thread(target=listen_for_global_shortcut, daemon=True).start()
+
     sys.exit(app.exec())
