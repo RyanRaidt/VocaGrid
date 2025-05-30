@@ -3,6 +3,8 @@ import pyaudio
 import json
 import queue
 import threading
+import re
+from word2number import w2n
 
 from utils import clean_command, match_command
 
@@ -24,6 +26,32 @@ theme_commands = {
     "high contrast": "theme_high_contrast",
     "blue light": "theme_blue_light"
 }
+
+# Mouse movement & scroll
+mouse_actions = {
+    "scroll up": "scroll_up",
+    "scroll down": "scroll_down",
+    "start drag": "start_drag",
+    "drop here": "drop_here"
+}
+
+
+def extract_amount(text: str) -> str | None:
+    """
+    Parse spoken movement like 'move right one hundred' → 'move_right_100'.
+    Defaults to 50 if no amount is spoken or understood.
+    """
+    match = re.match(r"move (right|left|up|down)( .+)?", text)
+    if match:
+        direction = match.group(1)
+        raw_amount = match.group(2).strip() if match.group(2) else ""
+        try:
+            amount = w2n.word_to_num(raw_amount) if raw_amount else 50
+        except ValueError:
+            amount = 50
+        return f"move_{direction}_{amount}"
+    return None
+
 
 class VoiceListener:
     def __init__(self, model_path="models/vosk-model-small-en-us-0.15"):
@@ -50,13 +78,13 @@ class VoiceListener:
                 if not text:
                     continue
 
-                #  Voice control: Toggle control panel
+                #  Panel toggle
                 if text == "toggle panel":
                     print("🪟 Voice command: toggle control panel")
                     COMMAND_QUEUE.put("toggle_panel")
                     continue
 
-                #  Theme commands
+                #  Theme change
                 if text in theme_commands:
                     print(f"🎨 Matched theme command: {text}")
                     COMMAND_QUEUE.put(theme_commands[text])
@@ -68,7 +96,20 @@ class VoiceListener:
                     COMMAND_QUEUE.put(click_commands[text])
                     continue
 
-                #  Grid command
+                #  Scroll / drag-drop
+                if text in mouse_actions:
+                    print(f"🖱️ Matched mouse command: {text}")
+                    COMMAND_QUEUE.put(mouse_actions[text])
+                    continue
+
+                #  Mouse move with spoken number
+                move_cmd = extract_amount(text)
+                if move_cmd:
+                    print(f"🧭 Parsed move command: {text} → {move_cmd}")
+                    COMMAND_QUEUE.put(move_cmd)
+                    continue
+
+                #  Grid cell
                 cleaned = clean_command(text)
                 matched = match_command(cleaned, valid_commands)
                 if matched:

@@ -1,7 +1,8 @@
 import sys
 import time
 import threading
-import keyboard  # 🔑 Global hotkey library
+import keyboard  # Global hotkey
+import pyautogui  # For mouse movement
 
 from voice_control import VoiceListener, COMMAND_QUEUE
 from mouse_control import move_to_grid_cell, click
@@ -13,6 +14,9 @@ from PyQt6.QtCore import QTimer, Qt
 
 # Global panel reference
 panel = None
+
+def move_mouse_by(dx=0, dy=0):
+    pyautogui.moveRel(dx, dy, duration=0.1)
 
 class VocaGridApp(GridOverlay):
     def __init__(self, theme="default"):
@@ -48,6 +52,22 @@ class VocaGridApp(GridOverlay):
                 if panel:
                     panel.toggle_visibility()
 
+            elif command.startswith("move_right_"):
+                amount = int(command.split("_")[-1])
+                move_mouse_by(dx=amount, dy=0)
+
+            elif command.startswith("move_left_"):
+                amount = int(command.split("_")[-1])
+                move_mouse_by(dx=-amount, dy=0)
+
+            elif command.startswith("move_up_"):
+                amount = int(command.split("_")[-1])
+                move_mouse_by(dx=0, dy=-amount)
+
+            elif command.startswith("move_down_"):
+                amount = int(command.split("_")[-1])
+                move_mouse_by(dx=0, dy=amount)
+
             else:
                 col = command[0].upper()
                 try:
@@ -70,9 +90,8 @@ def handle_theme_command(command: str):
             overlay.update_theme()
 
 def listen_for_global_shortcut():
-    # 🔥 Toggle control panel with Ctrl+Alt+P from anywhere
     keyboard.add_hotkey('ctrl+alt+p', lambda: panel.toggle_visibility() if panel is not None else None)
-    keyboard.wait()  # Keeps this thread alive
+    keyboard.wait()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
@@ -80,7 +99,6 @@ if __name__ == '__main__':
     overlay = VocaGridApp(theme="default")
     panel = ControlPanel(theme_callback=handle_theme_command)
 
-    # 🔊 Start background thread to listen for global hotkey
     threading.Thread(target=listen_for_global_shortcut, daemon=True).start()
 
     sys.exit(app.exec())
