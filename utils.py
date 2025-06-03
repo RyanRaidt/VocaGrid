@@ -52,3 +52,49 @@ def match_command(cleaned_text: str, valid_commands: list[str], threshold: int =
     match, score, _ = process.extractOne(cleaned_text, valid_commands)
     print(f"🔍 Fuzzy match: {cleaned_text} → {match} (score: {score})")
     return match if score >= threshold else None
+
+def parse_number(text):
+    """Parse numbers from spoken words like 'one hundred twenty five'."""
+    number_words = {
+        "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+        "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+        "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15,
+        "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19,
+        "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50,
+        "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90,
+        "hundred": 100
+    }
+
+    words = text.lower().split()
+    total = 0
+    current = 0
+    for word in words:
+        if word not in number_words:
+            continue
+        value = number_words[word]
+        if value == 100:
+            current *= 100
+        elif value >= 10:
+            current += value
+        else:
+            current = current * 10 + value
+    total += current
+    return total if total else None
+
+def parse_drag_or_diagonal(text):
+    #  Hold-to-drag
+    if "hold" in text and "drag" in text:
+        return "hold_drag"
+    if "release" in text:
+        return "release_drag"
+
+    # Diagonal movement like "move up right 30"
+    match = re.match(r"move (up|down)[ -]?(left|right)( [a-z0-9 ]+)?", text)
+    if match:
+        vert = match.group(1)
+        horiz = match.group(2)
+        amount_text = match.group(3).strip() if match.group(3) else "50"
+        amount = parse_number(amount_text) if not amount_text.isdigit() else int(amount_text)
+        return f"move_{vert}_{horiz}_{amount}"
+
+    return None

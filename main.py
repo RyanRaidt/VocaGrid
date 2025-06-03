@@ -68,6 +68,21 @@ class VocaGridApp(GridOverlay):
                 amount = int(command.split("_")[-1])
                 move_mouse_by(dx=0, dy=amount)
 
+            elif command == "hold_drag":
+                print("🖱️ Holding mouse button...")
+                pyautogui.mouseDown()
+
+            elif command == "release_drag":
+                print("🖱️ Releasing mouse button...")
+                pyautogui.mouseUp()
+
+            elif command.startswith("move_") and len(command.split("_")) == 4:
+                _, vertical, horizontal, amount = command.split("_")
+                dx = int(amount) if horizontal == "right" else -int(amount)
+                dy = int(amount) if vertical == "down" else -int(amount)
+                print(f"🧭 Diagonal move: dx={dx}, dy={dy}")
+                move_mouse_by(dx=dx, dy=dy)
+
             else:
                 col = command[0].upper()
                 try:

@@ -6,7 +6,7 @@ import threading
 import re
 from word2number import w2n
 
-from utils import clean_command, match_command
+from utils import clean_command, match_command, parse_drag_or_diagonal
 
 COMMAND_QUEUE = queue.Queue()
 
@@ -78,38 +78,45 @@ class VoiceListener:
                 if not text:
                     continue
 
-                #  Panel toggle
+                # 🪟 Panel toggle
                 if text == "toggle panel":
                     print("🪟 Voice command: toggle control panel")
                     COMMAND_QUEUE.put("toggle_panel")
                     continue
 
-                #  Theme change
+                # 🎨 Theme change
                 if text in theme_commands:
                     print(f"🎨 Matched theme command: {text}")
                     COMMAND_QUEUE.put(theme_commands[text])
                     continue
 
-                #  Click commands
+                # ✅ Click commands
                 if text in click_commands:
                     print(f"✅ Matched click command: {text}")
                     COMMAND_QUEUE.put(click_commands[text])
                     continue
 
-                #  Scroll / drag-drop
+                # 🖱️ Scroll / drag-drop
                 if text in mouse_actions:
                     print(f"🖱️ Matched mouse command: {text}")
                     COMMAND_QUEUE.put(mouse_actions[text])
                     continue
 
-                #  Mouse move with spoken number
+                # 🧭 Mouse move
                 move_cmd = extract_amount(text)
                 if move_cmd:
                     print(f"🧭 Parsed move command: {text} → {move_cmd}")
                     COMMAND_QUEUE.put(move_cmd)
                     continue
 
-                #  Grid cell
+                # 🧲 Drag or diagonal
+                drag_or_diag = parse_drag_or_diagonal(text)
+                if drag_or_diag:
+                    print(f"🧲 Parsed drag/diagonal command: {text} → {drag_or_diag}")
+                    COMMAND_QUEUE.put(drag_or_diag)
+                    continue
+
+                # 🧩 Grid cell
                 cleaned = clean_command(text)
                 matched = match_command(cleaned, valid_commands)
                 if matched:
