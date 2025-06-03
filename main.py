@@ -52,6 +52,15 @@ class VocaGridApp(GridOverlay):
                 if panel:
                     panel.toggle_visibility()
 
+            # 🧲 Diagonal movement: check this before single‐axis moves
+            elif command.startswith("move_") and len(command.split("_")) == 4:
+                _, vertical, horizontal, amount = command.split("_")
+                dx = int(amount) if horizontal == "right" else -int(amount)
+                dy = int(amount) if vertical == "down" else -int(amount)
+                print(f"🧭 Diagonal move: dx={dx}, dy={dy}")
+                move_mouse_by(dx=dx, dy=dy)
+
+            # 🧭 Single‐axis moves
             elif command.startswith("move_right_"):
                 amount = int(command.split("_")[-1])
                 move_mouse_by(dx=amount, dy=0)
@@ -75,13 +84,6 @@ class VocaGridApp(GridOverlay):
             elif command == "release_drag":
                 print("🖱️ Releasing mouse button...")
                 pyautogui.mouseUp()
-
-            elif command.startswith("move_") and len(command.split("_")) == 4:
-                _, vertical, horizontal, amount = command.split("_")
-                dx = int(amount) if horizontal == "right" else -int(amount)
-                dy = int(amount) if vertical == "down" else -int(amount)
-                print(f"🧭 Diagonal move: dx={dx}, dy={dy}")
-                move_mouse_by(dx=dx, dy=dy)
 
             else:
                 col = command[0].upper()

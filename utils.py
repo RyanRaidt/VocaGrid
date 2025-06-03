@@ -14,87 +14,78 @@ phonetic_map = {
 word_to_number = {
     "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
     "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-    "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14,
-    "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
-    "nineteen": 19, "twenty": 20, "thirty": 30
+    "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15,
+    "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19, "twenty": 20,
+    "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70,
+    "eighty": 80, "ninety": 90, "hundred": 100, "thousand": 1000
 }
 
-def clean_command(raw_text: str) -> str:
-    """Normalize input: remove filler words, convert phonetics and spoken numbers."""
-    text = raw_text.lower().strip()
-    text = re.sub(r'\b(move to|go to|letter|click on|select|click|press)\b', '', text)
-
-    # Convert phonetics to letters
-    words = text.split()
-    converted = [phonetic_map.get(word, word) for word in words]
-    text = ' '.join(converted)
-
-    # Handle compound and single numbers
-    words = text.split()
-    result = []
-    i = 0
-    while i < len(words):
-        word = words[i]
-        next_word = words[i + 1] if i + 1 < len(words) else ""
-        if word in ["twenty", "thirty"] and next_word in word_to_number:
-            result.append(str(word_to_number[word] + word_to_number[next_word]))
-            i += 2
-        elif word in word_to_number:
-            result.append(str(word_to_number[word]))
-            i += 1
-        else:
-            result.append(word)
-            i += 1
-
-    return re.sub(r'\s+', '', ''.join(result))
-
-def match_command(cleaned_text: str, valid_commands: list[str], threshold: int = 70) -> str | None:
-    match, score, _ = process.extractOne(cleaned_text, valid_commands)
-    print(f"🔍 Fuzzy match: {cleaned_text} → {match} (score: {score})")
-    return match if score >= threshold else None
-
 def parse_number(text):
-    """Parse numbers from spoken words like 'one hundred twenty five'."""
-    number_words = {
-        "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
-        "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-        "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15,
-        "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19,
-        "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50,
-        "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90,
-        "hundred": 100
-    }
-
-    words = text.lower().split()
+    """
+    Convert a spoken number (e.g. "fifty five") into an integer (55).
+    """
+    text = text.lower().strip()
+    parts = text.split()
     total = 0
     current = 0
-    for word in words:
-        if word not in number_words:
-            continue
-        value = number_words[word]
-        if value == 100:
-            current *= 100
-        elif value >= 10:
-            current += value
+
+    for part in parts:
+        if part in word_to_number:
+            scale = word_to_number[part]
+            if scale == 100 or scale == 1000:
+                current *= scale
+            else:
+                current += scale
         else:
-            current = current * 10 + value
+            try:
+                # Fallback: if it's already numeric
+                current += int(part)
+            except ValueError:
+                pass
+
     total += current
-    return total if total else None
+    return total if total > 0 else 0
+
+def clean_command(text):
+    """
+    Lowercase and strip extra spaces, correcting common mishears.
+    """
+    text = text.lower().strip()
+    # Replace phonetic alphabet words with their letter equivalents
+    for word, letter in phonetic_map.items():
+        text = text.replace(word, letter)
+    # Remove filler words
+    text = re.sub(r"\bplease\b", "", text)
+    text = re.sub(r"\bcomputer\b", "", text)
+    return text
+
+def match_command(cleaned_text, valid_commands):
+    """
+    Use fuzzy matching to find the closest valid command.
+    """
+    match, score, _ = process.extractOne(cleaned_text, valid_commands)
+    return match
 
 def parse_drag_or_diagonal(text):
-    #  Hold-to-drag
+    # Hold-to-drag
     if "hold" in text and "drag" in text:
         return "hold_drag"
     if "release" in text:
         return "release_drag"
 
-    # Diagonal movement like "move up right 30"
-    match = re.match(r"move (up|down)[ -]?(left|right)( [a-z0-9 ]+)?", text)
+    # Normalize text
+    text = text.lower()
+
+    # Search for diagonal movement like "move up right 30" or "move down left fifty"
+    match = re.search(r"move\s+(up|down)[ -]?(left|right)\s+([a-z0-9 ]+)?", text)
     if match:
         vert = match.group(1)
         horiz = match.group(2)
         amount_text = match.group(3).strip() if match.group(3) else "50"
-        amount = parse_number(amount_text) if not amount_text.isdigit() else int(amount_text)
+        try:
+            amount = parse_number(amount_text) if not amount_text.isdigit() else int(amount_text)
+        except:
+            amount = 50
         return f"move_{vert}_{horiz}_{amount}"
 
     return None

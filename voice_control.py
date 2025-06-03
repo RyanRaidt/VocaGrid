@@ -102,19 +102,20 @@ class VoiceListener:
                     COMMAND_QUEUE.put(mouse_actions[text])
                     continue
 
-                # 🧭 Mouse move
-                move_cmd = extract_amount(text)
-                if move_cmd:
-                    print(f"🧭 Parsed move command: {text} → {move_cmd}")
-                    COMMAND_QUEUE.put(move_cmd)
-                    continue
-
-                # 🧲 Drag or diagonal
+                    # 🧲 Drag or diagonal
                 drag_or_diag = parse_drag_or_diagonal(text)
                 if drag_or_diag:
                     print(f"🧲 Parsed drag/diagonal command: {text} → {drag_or_diag}")
                     COMMAND_QUEUE.put(drag_or_diag)
                     continue
+
+                    # 🖱️ Mouse move
+                move_cmd = extract_amount(text)
+                if move_cmd:
+                    print(f"🖱️ Parsed move command: {text} → {move_cmd}")
+                    COMMAND_QUEUE.put(move_cmd)
+                    continue
+
 
                 # 🧩 Grid cell
                 cleaned = clean_command(text)
