@@ -5,3 +5,8 @@ vosk
 pyaudio
 fuzzywuzzy
 python-Levenshtein
+faster-whisper
+pyaudio
+word2number
+numpy
+setuptools<81

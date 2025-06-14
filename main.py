@@ -24,7 +24,8 @@ class VocaGridApp(GridOverlay):
         super().__init__(columns=26, rows=30, theme=theme)
 
         self.voice = VoiceListener()
-        self.voice.start()
+        threading.Thread(target=self.voice.listen, daemon=True).start()
+
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.check_commands)
